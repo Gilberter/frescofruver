@@ -5,6 +5,7 @@ from datetime import datetime
 import enum
 
 from app.core.database import Base
+from app.models import *
 
 
 class EstadoOrden(str, enum.Enum):
@@ -19,11 +20,11 @@ class Proveedor(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
     nombre: Mapped[str] = mapped_column(String(150))
-    contacto: Mapped[str | None] = mapped_column(String(100))
     telefono: Mapped[str | None] = mapped_column(String(20))
     correo: Mapped[str | None] = mapped_column(String(100))
     direccion: Mapped[str | None] = mapped_column(String(255))
     estado: Mapped[str] = mapped_column(String(10), default="activo")
+
 
     # Relationships
     ordenes: Mapped[list["OrdenCompra"]] = relationship(back_populates="proveedor")

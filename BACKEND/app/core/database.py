@@ -19,7 +19,7 @@ class Base(DeclarativeBase):
     pass
 
 
-def get_db() -> Session:
+def get_db():
     """Yield a database session and ensure it is closed afterwards."""
     db = SessionLocal()
     try:

@@ -4,6 +4,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
 
+from app.models import *
 
 class CategoriaProducto(str, enum.Enum):
     fruta = "fruta"

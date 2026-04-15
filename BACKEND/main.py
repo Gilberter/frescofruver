@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.routers import compras
 from app.core.config import settings
 from app.routers import (
     auth,
@@ -9,7 +10,6 @@ from app.routers import (
     productos,
     ventas,
     proveedores,
-    ordenes,
     inventario,
     auditoria,
 )
@@ -42,7 +42,7 @@ app.include_router(clientes.router,    prefix=API_PREFIX)
 app.include_router(productos.router,   prefix=API_PREFIX)
 app.include_router(ventas.router,      prefix=API_PREFIX)
 app.include_router(proveedores.router, prefix=API_PREFIX)
-app.include_router(ordenes.router,     prefix=API_PREFIX)
+app.include_router(compras.router,     prefix=API_PREFIX)
 app.include_router(inventario.router,  prefix=API_PREFIX)
 app.include_router(auditoria.router,   prefix=API_PREFIX)
 
