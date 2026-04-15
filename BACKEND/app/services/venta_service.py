@@ -54,13 +54,15 @@ def crear_venta(db: Session, data: VentaCreate, actor_id: int) -> Venta:
         venta = Venta(
             numero_factura=numero_factura,
             cliente_id=data.cliente_id,
-            total=total,
-            canal_venta=data.canal_venta,
-        )
+            total=total
+            )
         venta = crud_venta.create_with_detalles(db, venta, detalles_orm)
 
         for item in data.detalles:
             producto = crud_producto.get_by_id(db, item.producto_id)
+            if producto is None:
+                print("Producto no encontrado")
+                continue
             nuevo_stock = producto.stock_actual - item.cantidad
             crud_producto.adjust_stock(db, producto, -item.cantidad)
             crud_inventario.registrar_movimiento(
@@ -112,6 +114,9 @@ def cancelar_venta(db: Session, venta_id: int, actor_id: int) -> Venta:
     # Revert stock
     for detalle in venta.detalles:
         producto = crud_producto.get_by_id(db, detalle.producto_id)
+        if producto is None:
+            print("Producto no encontrado")
+            continue
         crud_producto.adjust_stock(db, producto, detalle.cantidad)
         crud_inventario.registrar_movimiento(
             db,
