@@ -51,3 +51,4 @@ def actualizar_cliente(cliente_id: int, data: ClienteUpdate, db: DBSession):
 def historial_pedidos(cliente_id: int, db: DBSession):
     """Historial de pedidos del cliente (RF-02.4)."""
     return crud_venta.list_by_cliente(db, cliente_id)
+

@@ -12,6 +12,7 @@ from app.routers import (
     proveedores,
     inventario,
     auditoria,
+    informes
 )
 
 # ── App ───────────────────────────────────────────────────────────────────────
@@ -45,6 +46,7 @@ app.include_router(proveedores.router, prefix=API_PREFIX)
 app.include_router(compras.router,     prefix=API_PREFIX)
 app.include_router(inventario.router,  prefix=API_PREFIX)
 app.include_router(auditoria.router,   prefix=API_PREFIX)
+app.include_router(informes.router, prefix=API_PREFIX)
 
 
 # ── Health check ──────────────────────────────────────────────────────────────
