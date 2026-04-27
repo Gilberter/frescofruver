@@ -1,36 +1,33 @@
-import enum
-from sqlalchemy import String, Numeric, Integer, Enum
+from __future__ import annotations
+
+from datetime import date
+
+from sqlalchemy import String, Integer, Float, Date
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
 
-from app.models import *
-
-class CategoriaProducto(str, enum.Enum):
-    fruta = "fruta"
-    verdura = "verdura"
-
-
-class UnidadMedida(str, enum.Enum):
-    kg = "kg"
-    libra = "libra"
-    unidad = "unidad"
+# La BD del dump no incluye stock mínimo; umbral fijo para alertas (RF-07).
+BAJO_STOCK_UMBRAL = 70
 
 
 class Producto(Base):
+    """Mapea la tabla `productos` de `DATA/Database_FrescoFruver.sql`."""
+
     __tablename__ = "productos"
 
-    id: Mapped[int] = mapped_column(primary_key=True, index=True)
-    nombre: Mapped[str] = mapped_column(String(100), index=True)
-    categoria: Mapped[CategoriaProducto] = mapped_column(Enum(CategoriaProducto))
-    unidad_medida: Mapped[UnidadMedida] = mapped_column(Enum(UnidadMedida))
-    precio_compra: Mapped[float] = mapped_column(Numeric(12, 2))
-    precio_venta: Mapped[float] = mapped_column(Numeric(12, 2))
-    stock_actual: Mapped[int] = mapped_column(Integer, default=0)
-    stock_minimo: Mapped[int] = mapped_column(Integer, default=0)
-    estado: Mapped[str] = mapped_column(String(10), default="activo")
+    id: Mapped[int] = mapped_column("IdProducto", primary_key=True, autoincrement=True)
+    nombre: Mapped[str | None] = mapped_column("NomProd", String(100), nullable=True, index=True)
+    precio_compra: Mapped[float | None] = mapped_column("PrecioCompraProd", Float, nullable=True)
+    precio_venta: Mapped[float | None] = mapped_column("PrecioVentaProd", Float, nullable=True)
+    stock_actual: Mapped[int | None] = mapped_column("StockActualProd", Integer, nullable=True, default=0)
+    fecha_vencimiento: Mapped[date | None] = mapped_column("FechaVencimientoProd", Date, nullable=True)
+    categoria: Mapped[str | None] = mapped_column("CategoriaProd", String(50), nullable=True, index=True)
+    estado: Mapped[str | None] = mapped_column("EstadoProd", String(20), nullable=True, default="Activo")
 
-    # Relationships
-    detalles_venta: Mapped[list["DetalleVenta"]] = relationship(back_populates="producto")
-    detalles_compra: Mapped[list["DetalleCompra"]] = relationship(back_populates="producto")
-    movimientos: Mapped[list["MovimientoInventario"]] = relationship(back_populates="producto")
+    detalles_venta: Mapped[list["DetalleVenta"]] = relationship("DetalleVenta", back_populates="producto")
+    detalles_compra: Mapped[list["DetalleCompra"]] = relationship("DetalleCompra", back_populates="producto")
+    movimientos: Mapped[list["MovimientoInventario"]] = relationship(
+        "MovimientoInventario",
+        back_populates="producto",
+    )

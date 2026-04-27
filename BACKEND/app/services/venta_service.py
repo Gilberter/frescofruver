@@ -1,4 +1,4 @@
-from datetime import datetime, timezone, timedelta
+from datetime import date, datetime, time, timezone, timedelta
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
@@ -14,13 +14,22 @@ from app.schemas.venta import VentaCreate
 CANCEL_WINDOW_MINUTES = 10
 
 
+def _fecha_venta_a_utc(fecha: date | datetime | None) -> datetime | None:
+    if fecha is None:
+        return None
+    if isinstance(fecha, datetime):
+        fv = fecha
+        if fv.tzinfo is None:
+            return fv.replace(tzinfo=timezone.utc)
+        return fv.astimezone(timezone.utc)
+    return datetime.combine(fecha, time.min, tzinfo=timezone.utc)
+
+
 def crear_venta(db: Session, data: VentaCreate, actor_id: int) -> Venta:
-    # 1. Validate cliente
     cliente = crud_cliente.get_by_id(db, data.cliente_id)
     if not cliente:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Cliente no encontrado")
 
-    # 2. Validate stock for every product before touching anything
     detalles_orm: list[DetalleVenta] = []
     total = 0.0
 
@@ -31,45 +40,51 @@ def crear_venta(db: Session, data: VentaCreate, actor_id: int) -> Venta:
                 status.HTTP_404_NOT_FOUND,
                 detail=f"Producto id={item.producto_id} no encontrado",
             )
-        if producto.stock_actual < item.cantidad:
+        stock = producto.stock_actual or 0
+        if stock < item.cantidad:
             raise HTTPException(
                 status.HTTP_422_UNPROCESSABLE_ENTITY,
-                detail=f"Stock insuficiente para '{producto.nombre}'. "
-                       f"Disponible: {producto.stock_actual}, solicitado: {item.cantidad}",
+                detail=(
+                    f"Stock insuficiente para '{producto.nombre or 'producto'}'. "
+                    f"Disponible: {stock}, solicitado: {item.cantidad}"
+                ),
             )
-        subtotal = float(producto.precio_venta) * item.cantidad
+        pventa = float(producto.precio_venta or 0)
+        subtotal = pventa * item.cantidad
         total += subtotal
         detalles_orm.append(
             DetalleVenta(
                 producto_id=item.producto_id,
                 cantidad=item.cantidad,
-                precio_unitario=float(producto.precio_venta),
+                precio_unitario=pventa,
                 subtotal=subtotal,
             )
         )
 
-    # 3. Atomic transaction: create venta + detalles + discount stock
     try:
         numero_factura = crud_venta.next_factura_number(db)
         venta = Venta(
             numero_factura=numero_factura,
             cliente_id=data.cliente_id,
-            total=total
-            )
+            usuario_id=actor_id,
+            total=total,
+            estado=EstadoVenta.completada,
+            fecha_venta=date.today(),
+            canal_venta="Tienda",
+        )
         venta = crud_venta.create_with_detalles(db, venta, detalles_orm)
 
         for item in data.detalles:
             producto = crud_producto.get_by_id(db, item.producto_id)
             if producto is None:
-                print("Producto no encontrado")
                 continue
-            nuevo_stock = producto.stock_actual - item.cantidad
+            nuevo_stock = (producto.stock_actual or 0) - item.cantidad
             crud_producto.adjust_stock(db, producto, -item.cantidad)
             crud_inventario.registrar_movimiento(
                 db,
                 producto_id=item.producto_id,
                 usuario_id=actor_id,
-                tipo=TipoMovimiento.pedido,
+                tipo=TipoMovimiento.salida,
                 cantidad=-item.cantidad,
                 stock_resultante=nuevo_stock,
                 motivo=f"Venta {numero_factura}",
@@ -99,11 +114,13 @@ def cancelar_venta(db: Session, venta_id: int, actor_id: int) -> Venta:
     if venta.estado == EstadoVenta.cancelada:
         raise HTTPException(status.HTTP_409_CONFLICT, detail="La venta ya fue cancelada")
 
-    # Enforce 10-minute cancellation window
     ahora = datetime.now(timezone.utc)
-    fecha_venta = venta.fecha_venta
-    if fecha_venta.tzinfo is None:
-        fecha_venta = fecha_venta.replace(tzinfo=timezone.utc)
+    fecha_venta = _fecha_venta_a_utc(venta.fecha_venta)
+    if fecha_venta is None:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="La venta no tiene fecha válida para evaluar la ventana de cancelación",
+        )
 
     if ahora - fecha_venta > timedelta(minutes=CANCEL_WINDOW_MINUTES):
         raise HTTPException(
@@ -111,20 +128,18 @@ def cancelar_venta(db: Session, venta_id: int, actor_id: int) -> Venta:
             detail=f"Solo se puede cancelar dentro de los primeros {CANCEL_WINDOW_MINUTES} minutos",
         )
 
-    # Revert stock
     for detalle in venta.detalles:
-        producto = crud_producto.get_by_id(db, detalle.producto_id)
+        producto = crud_producto.get_by_id(db, detalle.producto_id or 0)
         if producto is None:
-            print("Producto no encontrado")
             continue
-        crud_producto.adjust_stock(db, producto, detalle.cantidad)
+        crud_producto.adjust_stock(db, producto, detalle.cantidad or 0)
         crud_inventario.registrar_movimiento(
             db,
-            producto_id=detalle.producto_id,
+            producto_id=detalle.producto_id or 0,
             usuario_id=actor_id,
             tipo=TipoMovimiento.ajuste,
-            cantidad=detalle.cantidad,
-            stock_resultante=producto.stock_actual,
+            cantidad=detalle.cantidad or 0,
+            stock_resultante=producto.stock_actual or 0,
             motivo=f"Cancelación venta {venta.numero_factura}",
         )
 

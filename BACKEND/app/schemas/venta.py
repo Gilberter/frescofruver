@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date
 from pydantic import BaseModel, Field
 from app.models.venta import EstadoVenta
 
@@ -15,21 +15,23 @@ class VentaCreate(BaseModel):
 
 class DetalleVentaOut(BaseModel):
     id: int
-    producto_id: int
-    cantidad: int
-    precio_unitario: float
-    subtotal: float
+    producto_id: int | None
+    cantidad: int | None
+    precio_unitario: float | None
+    subtotal: float | None
 
     model_config = {"from_attributes": True}
 
 
 class VentaOut(BaseModel):
     id: int
-    numero_factura: str
-    cliente_id: int
-    fecha_venta: datetime
-    total: float
-    estado: EstadoVenta
+    numero_factura: str | None
+    cliente_id: int | None
+    usuario_id: int | None
+    canal_venta: str | None
+    fecha_venta: date | None
+    total: float | None
+    estado: EstadoVenta | None
     detalles: list[DetalleVentaOut] = []
 
     model_config = {"from_attributes": True}
@@ -37,10 +39,12 @@ class VentaOut(BaseModel):
 
 class VentaResumen(BaseModel):
     id: int
-    numero_factura: str
-    cliente_id: int
-    fecha_venta: datetime
-    total: float
-    estado: EstadoVenta
+    numero_factura: str | None
+    cliente_id: int | None
+    usuario_id: int | None
+    canal_venta: str | None
+    fecha_venta: date | None
+    total: float | None
+    estado: EstadoVenta | None
 
     model_config = {"from_attributes": True}

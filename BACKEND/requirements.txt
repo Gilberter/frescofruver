@@ -1,9 +1,16 @@
 fastapi[standard]
+cryptography
+python-multipart
 sqlalchemy
+pymysql
 psycopg[binary]
 python-dotenv
 python-jose[cryptography]
-bcrypt[argon2]
+#
+# passlib 1.7.4 is not compatible with bcrypt 5.x (breaks at runtime on Windows).
+# Pin bcrypt to a compatible version to keep existing password hashes working.
+bcrypt==4.0.1
+passlib[bcrypt]==1.7.4
 pytest 
 httpx
 alembic

@@ -1,5 +1,5 @@
+import re
 from sqlalchemy.orm import Session
-from sqlalchemy import func
 
 from app.models.venta import Venta, DetalleVenta
 
@@ -26,9 +26,17 @@ def list_by_cliente(db: Session, cliente_id: int) -> list[Venta]:
 
 
 def next_factura_number(db: Session) -> str:
-    """Generate next sequential invoice number: F-0001, F-0002 …"""
-    count = db.query(func.count(Venta.id)).scalar() or 0
-    return f"F-{count + 1:04d}"
+    """Genera el siguiente número FAC-NNN alineado con el dump (FAC-001, …)."""
+    rows = db.query(Venta.numero_factura).all()
+    nums: list[int] = []
+    for (nf,) in rows:
+        if not nf:
+            continue
+        m = re.match(r"^FAC-(\d+)$", nf.strip(), re.I)
+        if m:
+            nums.append(int(m.group(1)))
+    n = max(nums) + 1 if nums else 1
+    return f"FAC-{n:03d}"
 
 
 def create_with_detalles(
@@ -37,7 +45,7 @@ def create_with_detalles(
     detalles: list[DetalleVenta],
 ) -> Venta:
     db.add(venta)
-    db.flush()  # get venta.id before adding details
+    db.flush()
     for d in detalles:
         d.venta_id = venta.id
         db.add(d)
@@ -48,6 +56,7 @@ def create_with_detalles(
 
 def cancel(db: Session, venta: Venta) -> Venta:
     from app.models.venta import EstadoVenta
+
     venta.estado = EstadoVenta.cancelada
     db.commit()
     db.refresh(venta)

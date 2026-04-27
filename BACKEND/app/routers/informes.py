@@ -23,7 +23,7 @@ def obtener_informe_ventas(
         description="Fecha fin (ISO format: 2026-04-30T23:59:59)",
     ),
     cliente_id: int | None = Query(None, description="Filtrar por cliente ID"),
-    estado: str | None = Query(None, description="Filtrar por estado (confirmada/cancelada)"),
+    estado: str | None = Query(None, description="Filtrar por estado: Completada, Pendiente, Cancelada"),
 ):
     """
     Obtiene informe tabular de ventas en el período especificado.

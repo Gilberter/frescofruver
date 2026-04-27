@@ -40,7 +40,7 @@ def obtener_orden(orden_id: int, db: DBSession):
 @router.post("/{orden_id}/recibir", response_model=OrdenCompraOut, dependencies=[AdminOrOwner])
 def recibir_orden(orden_id: int, db: DBSession, current_user: CurrentUser):
     """
-    Marcar orden como Recibida → aumenta el inventario (RF-05.5).
+    Marcar orden como Completada → aumenta el inventario (RF-05.5).
     Solo funciona si la orden está en estado Pendiente.
     """
     return proveedor_service.recibir_orden(db, orden_id, current_user.id)

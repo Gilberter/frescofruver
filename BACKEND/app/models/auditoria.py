@@ -1,20 +1,31 @@
-from datetime import datetime
-from sqlalchemy import String, ForeignKey, DateTime, Text
+from __future__ import annotations
+
+from datetime import date
+from sqlalchemy import String, ForeignKey, Date
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 
 from app.core.database import Base
-from app.models import *
 
 
 class Auditoria(Base):
-    __tablename__ = "auditorias"
+    """Mapea la tabla `auditoria` del dump `DATA/Database_FrescoFruver.sql`."""
 
-    id: Mapped[int] = mapped_column(primary_key=True, index=True)
-    usuario_id: Mapped[int | None] = mapped_column(ForeignKey("usuarios.id"), nullable=True)
-    fecha_auditoria: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-    accion: Mapped[str] = mapped_column(String(100))
-    descripcion: Mapped[str | None] = mapped_column(Text)
+    __tablename__ = "auditoria"
 
-    # Relationships
-    usuario: Mapped["Usuario | None"] = relationship(back_populates="auditorias")
+    id: Mapped[int] = mapped_column("IdAuditoria", primary_key=True, autoincrement=True)
+    usuario_id: Mapped[int | None] = mapped_column(
+        "IdUsuario",
+        ForeignKey("usuario.IdUsuario"),
+        nullable=True,
+    )
+    fecha_auditoria: Mapped[date | None] = mapped_column(
+        "FechaAuditoria",
+        Date,
+        server_default=func.current_date(),
+        nullable=True,
+    )
+    accion: Mapped[str] = mapped_column("Accion", String(100))
+    descripcion: Mapped[str | None] = mapped_column("Descripcion", String(255))
+
+    usuario: Mapped["Usuario | None"] = relationship("Usuario", back_populates="auditorias")

@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.routers import compras
 from app.core.config import settings
+from app.core.database import validate_database_connection
 from app.routers import (
     auth,
     usuarios,
@@ -28,7 +29,12 @@ app = FastAPI(
 # Adjust origins for production
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:3000"],
+    allow_origins=[
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -47,6 +53,17 @@ app.include_router(compras.router,     prefix=API_PREFIX)
 app.include_router(inventario.router,  prefix=API_PREFIX)
 app.include_router(auditoria.router,   prefix=API_PREFIX)
 app.include_router(informes.router, prefix=API_PREFIX)
+
+
+@app.on_event("startup")
+def startup_check_database():
+    validate_database_connection()
+
+
+# ── Root route ────────────────────────────────────────────────────────────────
+@app.get("/", tags=["Root"])
+def root():
+    return {"message": "FrescoExpress API activa"}
 
 
 # ── Health check ──────────────────────────────────────────────────────────────

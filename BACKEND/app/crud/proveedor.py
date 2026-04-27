@@ -5,8 +5,6 @@ from app.models.proveedor import Proveedor, OrdenCompra, DetalleCompra, EstadoOr
 from app.schemas.proveedor import ProveedorCreate, ProveedorUpdate
 
 
-# ── Proveedor ─────────────────────────────────────────────────────────────────
-
 def get_by_id(db: Session, proveedor_id: int) -> Proveedor | None:
     return db.get(Proveedor, proveedor_id)
 
@@ -16,7 +14,13 @@ def list_all(db: Session) -> list[Proveedor]:
 
 
 def create(db: Session, data: ProveedorCreate) -> Proveedor:
-    proveedor = Proveedor(**data.model_dump())
+    proveedor = Proveedor(
+        nombre=data.nombre,
+        telefono=data.telefono,
+        correo=data.correo,
+        direccion=data.direccion,
+        estado="Activo",
+    )
     db.add(proveedor)
     db.commit()
     db.refresh(proveedor)
@@ -42,15 +46,13 @@ def get_perfil_stats(db: Session, proveedor_id: int) -> dict:
         db.query(func.sum(OrdenCompra.total_orden))
         .filter(
             OrdenCompra.proveedor_id == proveedor_id,
-            OrdenCompra.estado_orden == EstadoOrden.recibida,
+            OrdenCompra.estado_orden == EstadoOrden.completada,
         )
         .scalar()
         or 0.0
     )
     return {"total_ordenes": total_ordenes, "monto_total_invertido": float(monto_total)}
 
-
-# ── Orden de Compra ───────────────────────────────────────────────────────────
 
 def get_orden_by_id(db: Session, orden_id: int) -> OrdenCompra | None:
     return db.get(OrdenCompra, orden_id)

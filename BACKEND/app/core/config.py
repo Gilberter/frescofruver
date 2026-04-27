@@ -6,7 +6,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 
     # Database
-    DATABASE_URL: str = "mysql+pymysql://root:password@localhost:3306/frescoexpress"
+    DATABASE_URL: str = "mysql+pymysql://root:password@localhost:3306/inventario_db"
 
     # Security
     SECRET_KEY: str = "dev-secret-change-in-production"

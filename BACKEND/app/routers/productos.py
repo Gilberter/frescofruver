@@ -3,7 +3,6 @@ from fastapi import APIRouter, HTTPException, status, Query
 from app.core.deps import DBSession, CurrentUser, AnyRole, AdminOrOwner
 from app.crud import producto as crud_producto
 from app.crud import inventario as crud_inventario
-from app.models.producto import CategoriaProducto
 from app.schemas.producto import ProductoCreate, ProductoUpdate, ProductoOut, AjusteInventarioIn
 from app.schemas.inventario import MovimientoOut
 from app.services import producto_service
@@ -14,7 +13,7 @@ router = APIRouter(prefix="/productos", tags=["Productos e Inventario"])
 @router.get("/", response_model=list[ProductoOut], dependencies=[AnyRole])
 def listar_productos(
     db: DBSession,
-    categoria: CategoriaProducto | None = Query(default=None),
+    categoria: str | None = Query(default=None, description="Ej. Frutas, Verduras, Hierbas"),
 ):
     """Inventario en tiempo real filtrable por categoría (RF-03.2)."""
     return crud_producto.list_all(db, categoria)
@@ -22,7 +21,7 @@ def listar_productos(
 
 @router.get("/bajo-stock", response_model=list[ProductoOut], dependencies=[AnyRole])
 def productos_bajo_stock(db: DBSession):
-    """Productos cuyo stock_actual <= stock_minimo (RF-07)."""
+    """Productos con stock bajo el umbral definido para la BD de ejemplo (RF-07)."""
     return crud_producto.list_bajo_stock(db)
 
 

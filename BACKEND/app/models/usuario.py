@@ -1,9 +1,10 @@
+from __future__ import annotations
+
 import enum
 from sqlalchemy import String, Enum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
-from app.models import *
 
 
 class RolUsuario(str, enum.Enum):
@@ -13,16 +14,33 @@ class RolUsuario(str, enum.Enum):
 
 
 class Usuario(Base):
-    __tablename__ = "usuarios"
+    """Mapea la tabla `usuario` del dump `DATA/Database_FrescoFruver.sql`."""
 
-    id: Mapped[int] = mapped_column(primary_key=True, index=True)
-    nombre_completo: Mapped[str] = mapped_column(String(150))
-    no_documento: Mapped[str] = mapped_column(String(20), unique=True, index=True)
-    username: Mapped[str] = mapped_column(String(60), unique=True, index=True)
-    password: Mapped[str] = mapped_column(String(255))
-    rol: Mapped[RolUsuario] = mapped_column(Enum(RolUsuario), default=RolUsuario.vendedor)
-    estado: Mapped[str] = mapped_column(String(10), default="activo")  # activo | inactivo
+    __tablename__ = "usuario"
 
-    # Relationships
-    auditorias: Mapped[list["Auditoria"]] = relationship(back_populates="usuario")
-    movimientos: Mapped[list["MovimientoInventario"]] = relationship(back_populates="usuario")
+    id: Mapped[int] = mapped_column("IdUsuario", primary_key=True, autoincrement=True)
+    nombre_completo: Mapped[str | None] = mapped_column("NomUsuario", String(100), nullable=True)
+    no_documento: Mapped[str | None] = mapped_column(
+        "NoDocumentoUsuario", String(50), nullable=True, index=True
+    )
+    username: Mapped[str | None] = mapped_column("Username", String(50), nullable=True, unique=True, index=True)
+    password: Mapped[str] = mapped_column("Password", String(255))
+    telefono: Mapped[str | None] = mapped_column("TelUsuario", String(20), nullable=True)
+    correo: Mapped[str | None] = mapped_column("CorreoUsuario", String(100), nullable=True)
+    rol: Mapped[RolUsuario] = mapped_column(
+        "RolUsuario",
+        Enum(
+            RolUsuario,
+            native_enum=False,
+            values_callable=lambda enum_cls: [item.value for item in enum_cls],
+        ),
+        default=RolUsuario.vendedor,
+    )
+    estado: Mapped[str | None] = mapped_column("Estado", String(20), nullable=True)
+
+    auditorias: Mapped[list["Auditoria"]] = relationship("Auditoria", back_populates="usuario")
+    movimientos: Mapped[list["MovimientoInventario"]] = relationship(
+        "MovimientoInventario",
+        back_populates="usuario",
+    )
+    ventas: Mapped[list["Venta"]] = relationship("Venta", back_populates="usuario")

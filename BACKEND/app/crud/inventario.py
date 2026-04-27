@@ -1,3 +1,5 @@
+from datetime import date
+
 from sqlalchemy.orm import Session
 
 from app.models.inventario import MovimientoInventario, TipoMovimiento
@@ -13,6 +15,7 @@ def registrar_movimiento(
     motivo: str | None = None,
 ) -> MovimientoInventario:
     mov = MovimientoInventario(
+        fecha_movimiento=date.today(),
         producto_id=producto_id,
         usuario_id=usuario_id,
         tipo_movimiento=tipo,

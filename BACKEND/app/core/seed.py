@@ -17,7 +17,7 @@ def seed_usuarios(db: Session) -> None:
         username="admin",
         password=hash_password("admin123"),
         rol=RolUsuario.administrador,
-        estado="activo",
+        estado="Activo",
     )
     db.add(admin)
     db.commit()

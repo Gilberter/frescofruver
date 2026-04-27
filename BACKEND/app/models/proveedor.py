@@ -1,59 +1,68 @@
-from sqlalchemy import String, Numeric, Integer, ForeignKey, DateTime, Enum
-from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy.sql import func
-from datetime import datetime
+from __future__ import annotations
+
 import enum
+from datetime import date
+
+from sqlalchemy import String, Float, Integer, ForeignKey, Date, Enum
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
-from app.models import *
 
 
 class EstadoOrden(str, enum.Enum):
-    pendiente = "pendiente"
-    recibida = "recibida"
-    parcial = "parcial"
-    cancelada = "cancelada"
+    pendiente = "Pendiente"
+    completada = "Completada"
+    cancelada = "Cancelada"
 
 
 class Proveedor(Base):
+    """Mapea la tabla `proveedores` del dump SQL."""
+
     __tablename__ = "proveedores"
 
-    id: Mapped[int] = mapped_column(primary_key=True, index=True)
-    nombre: Mapped[str] = mapped_column(String(150))
-    telefono: Mapped[str | None] = mapped_column(String(20))
-    correo: Mapped[str | None] = mapped_column(String(100))
-    direccion: Mapped[str | None] = mapped_column(String(255))
-    estado: Mapped[str] = mapped_column(String(10), default="activo")
+    id: Mapped[int] = mapped_column("IdProv", primary_key=True, autoincrement=True)
+    nombre: Mapped[str | None] = mapped_column("NomProv", String(100), nullable=True)
+    telefono: Mapped[str | None] = mapped_column("TelProv", String(20), nullable=True)
+    direccion: Mapped[str | None] = mapped_column("DirProv", String(150), nullable=True)
+    correo: Mapped[str | None] = mapped_column("CorreoProv", String(100), nullable=True)
+    estado: Mapped[str | None] = mapped_column("EstadoProv", String(20), nullable=True, default="Activo")
 
-
-    # Relationships
-    ordenes: Mapped[list["OrdenCompra"]] = relationship(back_populates="proveedor")
+    ordenes: Mapped[list["OrdenCompra"]] = relationship("OrdenCompra", back_populates="proveedor")
 
 
 class OrdenCompra(Base):
-    __tablename__ = "ordenes_compra"
+    __tablename__ = "ordencompra"
 
-    id: Mapped[int] = mapped_column(primary_key=True, index=True)
-    proveedor_id: Mapped[int] = mapped_column(ForeignKey("proveedores.id"))
-    fecha_orden: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-    estado_orden: Mapped[EstadoOrden] = mapped_column(Enum(EstadoOrden), default=EstadoOrden.pendiente)
-    total_orden: Mapped[float] = mapped_column(Numeric(14, 2), default=0)
+    id: Mapped[int] = mapped_column("IdOrdenCompra", primary_key=True, autoincrement=True)
+    fecha_orden: Mapped[date | None] = mapped_column("FechaOrden", Date, nullable=True)
+    estado_orden: Mapped[EstadoOrden | None] = mapped_column(
+        "EstadoOrden",
+        Enum(EstadoOrden, values_callable=lambda x: [e.value for e in x], native_enum=False),
+        nullable=True,
+        default=EstadoOrden.pendiente,
+    )
+    total_orden: Mapped[float | None] = mapped_column("TotalOrden", Float, nullable=True)
+    proveedor_id: Mapped[int | None] = mapped_column("IdProv", ForeignKey("proveedores.IdProv"), nullable=True)
+    cliente_id: Mapped[int | None] = mapped_column("IdCliente", ForeignKey("cliente.IdCliente"), nullable=True)
 
-    # Relationships
-    proveedor: Mapped["Proveedor"] = relationship(back_populates="ordenes")
-    detalles: Mapped[list["DetalleCompra"]] = relationship(back_populates="orden", cascade="all, delete-orphan")
+    proveedor: Mapped["Proveedor | None"] = relationship("Proveedor", back_populates="ordenes")
+    cliente: Mapped["Cliente | None"] = relationship("Cliente", back_populates="ordenes_compra")
+    detalles: Mapped[list["DetalleCompra"]] = relationship(
+        "DetalleCompra",
+        back_populates="orden",
+        cascade="all, delete-orphan",
+    )
 
 
 class DetalleCompra(Base):
-    __tablename__ = "detalles_compra"
+    __tablename__ = "detallecompra"
 
-    id: Mapped[int] = mapped_column(primary_key=True, index=True)
-    orden_id: Mapped[int] = mapped_column(ForeignKey("ordenes_compra.id"))
-    producto_id: Mapped[int] = mapped_column(ForeignKey("productos.id"))
-    cantidad: Mapped[int] = mapped_column(Integer)
-    precio_costo: Mapped[float] = mapped_column(Numeric(12, 2))
-    subtotal: Mapped[float] = mapped_column(Numeric(14, 2))
+    id: Mapped[int] = mapped_column("IdDetalleCompra", primary_key=True, autoincrement=True)
+    orden_id: Mapped[int | None] = mapped_column("IdOrdenCompra", ForeignKey("ordencompra.IdOrdenCompra"), nullable=True)
+    producto_id: Mapped[int | None] = mapped_column("IdProducto", ForeignKey("productos.IdProducto"), nullable=True)
+    cantidad: Mapped[int | None] = mapped_column("Cantidad", Integer, nullable=True)
+    precio_costo: Mapped[float | None] = mapped_column("PrecioCosto", Float, nullable=True)
+    subtotal: Mapped[float | None] = mapped_column("Subtotal", Float, nullable=True)
 
-    # Relationships
-    orden: Mapped["OrdenCompra"] = relationship(back_populates="detalles")
-    producto: Mapped["Producto"] = relationship(back_populates="detalles_compra")
+    orden: Mapped["OrdenCompra"] = relationship("OrdenCompra", back_populates="detalles")
+    producto: Mapped["Producto | None"] = relationship("Producto", back_populates="detalles_compra")

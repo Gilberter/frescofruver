@@ -27,6 +27,8 @@ def create(db: Session, data: UsuarioCreate) -> Usuario:
         no_documento=data.no_documento,
         username=data.username,
         password=hash_password(data.password),
+        telefono=data.telefono,
+        correo=data.correo,
         rol=data.rol,
         estado=data.estado,
     )
@@ -45,7 +47,7 @@ def update(db: Session, user: Usuario, data: UsuarioUpdate) -> Usuario:
 
 
 def deactivate(db: Session, user: Usuario) -> Usuario:
-    user.estado = "inactivo"
+    user.estado = "Inactivo"
     db.commit()
     db.refresh(user)
     return user

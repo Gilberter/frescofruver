@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.security import decode_access_token
+from app.core.user_estado import estado_indica_inactivo
 from app.models.usuario import Usuario, RolUsuario
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
@@ -35,7 +36,7 @@ def get_current_user(token: TokenDep, db: DBSession) -> Usuario:
         raise credentials_exc
 
     user = db.get(Usuario, int(user_id))
-    if user is None or user.estado == "inactivo":
+    if user is None or estado_indica_inactivo(user.estado):
         raise credentials_exc
     return user
 

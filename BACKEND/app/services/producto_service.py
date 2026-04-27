@@ -26,7 +26,7 @@ def actualizar_producto(db: Session, producto_id: int, data: ProductoUpdate, act
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Producto no encontrado")
 
     # Audit price changes
-    if data.precio_venta and data.precio_venta != producto.precio_venta:
+    if data.precio_venta is not None and float(data.precio_venta) != float(producto.precio_venta or 0):
         crud_auditoria.registrar(
             db,
             accion="cambio_precio",
