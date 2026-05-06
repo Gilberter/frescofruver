@@ -150,7 +150,7 @@ def obtener_informe_compras(
         filas.append(
             FilaCompraTabular(
                 numero_orden=str(orden.id),
-                proveedor=orden.proveedor.nombre if orden.proveedor else "N/A",
+                proveedor=orden.proveedor.nombre if orden.proveedor else "",
                 fecha_orden=fecha_dt,
                 cantidad_items=cantidad_items,
                 subtotal=float(orden.total_orden or 0),
