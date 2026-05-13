@@ -7,6 +7,8 @@ from pydantic import BaseModel, Field
 from app.core.database import get_db
 from app.schemas.usuario import TokenOut, UsuarioOut
 from app.services import auth_service
+from app.core.deps import CurrentUser
+from app.crud.auditoria import registrar
 
 router = APIRouter(prefix="/auth", tags=["Autenticación"])
 
@@ -43,3 +45,27 @@ def register(payload: RegisterInput, db: Session = Depends(get_db)):
         telefono=payload.telefono,
         correo=payload.correo,
     )
+
+
+@router.post("/logout")
+def logout(
+    current_user: CurrentUser,
+    db: Session = Depends(get_db)
+):
+
+    registrar(
+        db,
+        accion="logout",
+        descripcion=(
+            f"Usuario '{current_user.username}' cerró sesión"
+        ),
+        usuario_id=current_user.id,
+    )
+
+    return {
+        "message": "Sesion cerrada correctamente"
+    }
+
+@router.get("/me", response_model=UsuarioOut)
+def get_me(current_user: CurrentUser):
+    return current_user

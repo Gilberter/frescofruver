@@ -3,8 +3,8 @@ from fastapi import APIRouter, HTTPException, status, Query
 from app.core.deps import DBSession, CurrentUser, AnyRole, AdminOrOwner
 from app.crud import producto as crud_producto
 from app.crud import inventario as crud_inventario
-from app.schemas.producto import ProductoCreate, ProductoUpdate, ProductoOut, AjusteInventarioIn
-from app.schemas.inventario import MovimientoOut
+from app.schemas.producto import ProductoCreate, ProductoUpdate, ProductoOut
+from app.schemas.inventario import MovimientoOut, MovimientoIn
 from app.services import producto_service
 
 router = APIRouter(prefix="/productos", tags=["Productos e Inventario"])
@@ -46,9 +46,9 @@ def actualizar_producto(producto_id: int, data: ProductoUpdate, db: DBSession, c
 
 
 @router.post("/{producto_id}/ajuste", response_model=ProductoOut, dependencies=[AdminOrOwner])
-def ajuste_manual(producto_id: int, data: AjusteInventarioIn, db: DBSession, current_user: CurrentUser):
+def ajuste_manual(producto_id: int, data: MovimientoIn, db: DBSession, current_user: CurrentUser):
     """Ajuste manual de inventario con motivo obligatorio (RF-03.4)."""
-    return producto_service.ajuste_manual(db, producto_id, data, current_user.id)
+    return producto_service.ajuste_inventario(db, producto_id, data, current_user.id)
 
 
 @router.get("/{producto_id}/movimientos", response_model=list[MovimientoOut], dependencies=[AnyRole])

@@ -13,8 +13,9 @@ def crear_usuario(db: Session, data: UsuarioCreate, actor_id: int) -> Usuario:
 
     if crud_usuario.get_by_documento(db, data.no_documento):
         raise HTTPException(status.HTTP_409_CONFLICT, detail="Número de documento ya registrado")
-
+    
     user = crud_usuario.create(db, data)
+    print(user)
     crud_auditoria.registrar(
         db,
         accion="crear_usuario",

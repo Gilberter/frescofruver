@@ -9,25 +9,31 @@ LOCAL_DB_URL = "sqlite:///./local_database.db"
 
 def create_db_engine():
     try:
-        # Try primary database (e.g., MySQL from .env)
+        print("Connecting to:", settings.DATABASE_URL)
+
         temp_engine = create_engine(
             settings.DATABASE_URL,
             pool_pre_ping=True,
             pool_recycle=3600,
             echo=settings.is_dev,
         )
-        # Test connection immediately
+
         with temp_engine.connect() as conn:
             conn.execute(text("SELECT 1"))
+
+        print("Connected to MySQL successfully!")
         return temp_engine
-    except Exception:
-        print("⚠️ Primary DB connection failed. Falling back to local SQLite.")
-        # 2. Fallback to local SQLite if primary fails
+
+    except Exception as e:
+        print("MySQL connection failed:")
+        print(e)
+
+        print("Falling back to SQLite...")
         return create_engine(
             LOCAL_DB_URL,
-            connect_args={"check_same_thread": False} # Needed for SQLite + FastAPI
+            connect_args={"check_same_thread": False}
         )
-
+    
 engine = create_db_engine()
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 

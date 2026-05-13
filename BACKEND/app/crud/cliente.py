@@ -30,3 +30,11 @@ def update(db: Session, cliente: Cliente, data: ClienteUpdate) -> Cliente:
     db.commit()
     db.refresh(cliente)
     return cliente
+
+
+def delete(db: Session, cliente_id: int) -> bool:
+    cliente = db.get(Cliente,cliente_id)
+    if not cliente:
+        return False
+    db.delete(Cliente)
+    return True

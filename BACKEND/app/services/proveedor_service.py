@@ -7,9 +7,9 @@ from app.crud import proveedor as crud_proveedor
 from app.crud import producto as crud_producto
 from app.crud import inventario as crud_inventario
 from app.crud import auditoria as crud_auditoria
-from app.models.proveedor import Proveedor, OrdenCompra, DetalleCompra, EstadoOrden
-from app.models.inventario import TipoMovimiento
-from app.schemas.proveedor import ProveedorCreate, ProveedorUpdate, OrdenCompraCreate, ProveedorOut, ProveedorPerfil
+from app.crud import usuario as crud_usuario
+from app.models import *
+from app.schemas import *
 
 
 def _proveedor_activo(prov: Proveedor) -> bool:
@@ -40,43 +40,67 @@ def perfil_proveedor(db: Session, proveedor_id: int) -> ProveedorPerfil:
     return ProveedorPerfil(**base.model_dump(), **stats)
 
 
-def crear_orden_compra(db: Session, data: OrdenCompraCreate, actor_id: int) -> OrdenCompra:
+def crear_orden_compra(
+    db: Session,
+    data: OrdenCompraCreate,
+    actor_id: int
+) -> OrdenCompra:
+
     prov = crud_proveedor.get_by_id(db, data.proveedor_id)
+
     if not prov or not _proveedor_activo(prov):
         raise HTTPException(
             status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="No se puede crear una orden sin un proveedor activo seleccionado",
         )
 
-    cliente_id = data.cliente_id if data.cliente_id is not None else data.proveedor_id
-
     total = 0.0
-    detalles_orm: list[DetalleCompra] = []
+    detalles_orm: list[DetalleOrdenCompra] = []
 
     for item in data.detalles:
+
         producto = crud_producto.get_by_id(db, item.producto_id)
+
         if not producto:
-            raise HTTPException(status.HTTP_404_NOT_FOUND, detail=f"Producto id={item.producto_id} no encontrado")
-        subtotal = item.precio_costo * item.cantidad
+            raise HTTPException(
+                status.HTTP_404_NOT_FOUND,
+                detail=f"Producto id={item.producto_id} no encontrado"
+            )
+
+        subtotal = item.precio_unitario * item.cantidad
+
         total += subtotal
+
         detalles_orm.append(
-            DetalleCompra(
+            DetalleOrdenCompra(
                 producto_id=item.producto_id,
                 cantidad=item.cantidad,
-                precio_costo=item.precio_costo,
+                precio_unitario=item.precio_unitario,
                 subtotal=subtotal,
             )
         )
 
     orden = OrdenCompra(
         proveedor_id=data.proveedor_id,
-        cliente_id=cliente_id,
+        usuario_id=actor_id,
         fecha_orden=date.today(),
         total_orden=total,
         estado_orden=EstadoOrden.pendiente,
     )
-    orden = crud_proveedor.create_orden_with_detalles(db, orden, detalles_orm)
-    crud_auditoria.registrar(db, "crear_orden_compra", f"Orden id={orden.id} creada", actor_id)
+
+    orden = crud_proveedor.create_orden_with_detalles(
+        db,
+        orden,
+        detalles_orm
+    )
+
+    crud_auditoria.registrar(
+        db,
+        "crear_orden_compra",
+        f"Orden id={orden.id} creada",
+        actor_id,
+    )
+
     return orden
 
 

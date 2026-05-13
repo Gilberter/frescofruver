@@ -3,7 +3,7 @@ from __future__ import annotations
 import enum
 from sqlalchemy import String, Enum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-
+from app.models import *
 from app.core.database import Base
 
 
@@ -23,7 +23,7 @@ class Usuario(Base):
     no_documento: Mapped[str | None] = mapped_column(
         "NoDocumentoUsuario", String(50), nullable=True, index=True
     )
-    username: Mapped[str | None] = mapped_column("Username", String(50), nullable=True, unique=True, index=True)
+    username: Mapped[str] = mapped_column("Username", String(50), nullable=True, unique=True, index=True)
     password: Mapped[str] = mapped_column("Password", String(255))
     telefono: Mapped[str | None] = mapped_column("TelUsuario", String(20), nullable=True)
     correo: Mapped[str | None] = mapped_column("CorreoUsuario", String(100), nullable=True)
@@ -44,3 +44,7 @@ class Usuario(Base):
         back_populates="usuario",
     )
     ventas: Mapped[list["Venta"]] = relationship("Venta", back_populates="usuario")
+    ordenes_compra: Mapped[list["OrdenCompra"]] = relationship(
+        "OrdenCompra",
+        back_populates="usuario"
+    )

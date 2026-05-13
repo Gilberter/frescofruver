@@ -12,6 +12,7 @@ const Audit = () => {
   const loadLogs = async () => {
     try {
       const data = await auditoria.getLogs();
+      // console.log(Object.keys(data));
       setLogs(data);
     } catch (err) {
       console.error(err);

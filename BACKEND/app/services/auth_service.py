@@ -5,9 +5,9 @@ from datetime import datetime, timedelta, timezone
 from app.crud import usuario as crud_usuario
 from app.crud import auditoria as crud_auditoria
 from app.models.usuario import RolUsuario
-from app.core.security import verify_password, create_access_token
+from app.core.security import Hasher, TokenService
 from app.core.user_estado import estado_indica_inactivo
-from app.schemas.usuario import TokenOut, UsuarioCreate, UsuarioOut
+from app.schemas import *
 
 MAX_FAILED_ATTEMPTS = 5
 LOCKOUT_MINUTES = 15
@@ -44,7 +44,7 @@ def login(db: Session, username: str, password: str) -> TokenOut:
 
     user = crud_usuario.get_by_username(db, username)
 
-    if not user or not verify_password(password, user.password):
+    if not user or not Hasher.verify_password(password, user.password):
         attempts = 1
         if state and isinstance(state.get("attempts"), int):
             attempts = int(state["attempts"]) + 1
@@ -68,9 +68,12 @@ def login(db: Session, username: str, password: str) -> TokenOut:
             detail="Cuenta desactivada. Contacte al administrador.",
         )
 
-    token = create_access_token(
+    token = TokenService.create_access_token(
         subject=user.id,
-        extra_claims={"rol": user.rol.value, "username": user.username},
+        extra_claims={
+            "rol": user.rol,
+            "username": user.username,
+        }
     )
 
     crud_auditoria.registrar(

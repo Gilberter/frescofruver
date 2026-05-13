@@ -1,9 +1,11 @@
 import axios from 'axios';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000/api/v1';
+
+const API_BASE_URL = `http://127.0.0.1:8000/api/v1`;
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
+  timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -27,12 +29,14 @@ apiClient.interceptors.request.use(
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response && error.response.status === 401) {
-      // Optional: Clear token and redirect to login
+    if (error.response?.status === 401) {
+
       localStorage.removeItem('token');
       localStorage.removeItem('user');
-      // window.location.href = '/login';
+
+      window.location.href = '/login';
     }
+
     return Promise.reject(error);
   }
 );

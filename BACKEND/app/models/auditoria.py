@@ -4,6 +4,7 @@ from datetime import date
 from sqlalchemy import String, ForeignKey, Date
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
+from app.models import *
 
 from app.core.database import Base
 
@@ -14,18 +15,16 @@ class Auditoria(Base):
     __tablename__ = "auditoria"
 
     id: Mapped[int] = mapped_column("IdAuditoria", primary_key=True, autoincrement=True)
-    usuario_id: Mapped[int | None] = mapped_column(
+    usuario_id: Mapped[int] = mapped_column(
         "IdUsuario",
-        ForeignKey("usuario.IdUsuario"),
-        nullable=True,
+        ForeignKey("usuario.IdUsuario")
     )
-    fecha_auditoria: Mapped[date | None] = mapped_column(
+    fecha_auditoria: Mapped[date] = mapped_column(
         "FechaAuditoria",
         Date,
-        server_default=func.current_date(),
-        nullable=True,
+        server_default=func.current_date()
     )
     accion: Mapped[str] = mapped_column("Accion", String(100))
-    descripcion: Mapped[str | None] = mapped_column("Descripcion", String(255))
+    descripcion: Mapped[str | None] = mapped_column("Descripcion", String(255), nullable=True)
 
-    usuario: Mapped["Usuario | None"] = relationship("Usuario", back_populates="auditorias")
+    usuario: Mapped["Usuario"] = relationship("Usuario", back_populates="auditorias")

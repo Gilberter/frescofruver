@@ -70,7 +70,7 @@ const Providers = () => {
   };
 
   const toggleStatus = async (p) => {
-    const newStatus = p.estado === 'activo' ? 'inactivo' : 'activo';
+    const newStatus = p.estado === 'Activo' ? 'Inactivo' : 'Activo';
     if (!window.confirm(`¿Está seguro de cambiar el estado de ${p.nombre} a ${newStatus}?`)) return;
     
     try {
@@ -123,12 +123,11 @@ const Providers = () => {
                   </td>
                   <td className="px-6 py-5">
                     <div className="flex flex-col">
-                      <span className="font-bold text-gray-700">{p.contacto || 'N/A'}</span>
                       <span className="text-xs text-[#4263eb] font-black">{p.telefono}</span>
                     </div>
                   </td>
                   <td className="px-6 py-5 text-center">
-                    <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest ${p.estado === 'activo' ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'}`}>
+                    <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest ${p.estado === 'Activo' ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'}`}>
                       {p.estado}
                     </span>
                   </td>

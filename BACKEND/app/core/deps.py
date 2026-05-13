@@ -6,7 +6,7 @@ from jose import JWTError
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.core.security import decode_access_token
+from app.core.security import TokenService
 from app.core.user_estado import estado_indica_inactivo
 from app.models.usuario import Usuario, RolUsuario
 
@@ -28,7 +28,7 @@ def get_current_user(token: TokenDep, db: DBSession) -> Usuario:
         headers={"WWW-Authenticate": "Bearer"},
     )
     try:
-        payload = decode_access_token(token)
+        payload = TokenService.verify_token(token)
         user_id: str | None = payload.get("sub")
         if user_id is None:
             raise credentials_exc

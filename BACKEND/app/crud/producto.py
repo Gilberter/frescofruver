@@ -38,7 +38,6 @@ def create(db: Session, data: ProductoCreate) -> Producto:
         categoria=data.categoria,
         precio_compra=data.precio_compra,
         precio_venta=data.precio_venta,
-        stock_actual=data.stock_actual,
         fecha_vencimiento=data.fecha_vencimiento,
         estado=data.estado,
     )

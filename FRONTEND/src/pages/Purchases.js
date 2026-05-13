@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { purchases, providers, products } from '../api';
 import Modal from '../components/Modal';
 
@@ -28,6 +28,7 @@ const Purchases = () => {
       setPurchaseList(ordData);
       setProviderList(provData);
       setProductList(prodData);
+ 
     } catch (err) {
       console.error(err);
     } finally {
@@ -38,15 +39,27 @@ const Purchases = () => {
   const addToCart = () => {
     const product = productList.find(p => p.nombre.toLowerCase().includes(searchTerm.toLowerCase()));
     if (product) {
+      console.log("PRODUCT KEYS:");
+      console.log(Object.keys(product));
       const existing = cart.find(item => item.producto_id === product.id);
       if (existing) {
         setCart(cart.map(item => item.producto_id === product.id ? { ...item, cantidad: item.cantidad + 1 } : item));
       } else {
-        setCart([...cart, { producto_id: product.id, nombre: product.nombre, cantidad: 1, precio_costo: product.precio_compra }]);
+        setCart([...cart, { producto_id: product.id, nombre: product.nombre, cantidad: 1, precio_unitario: product.precio_compra }]);
       }
       setSearchTerm('');
     }
   };
+
+  const filteredProducts = useMemo(() => {
+    if (!searchTerm.trim()) return [];
+
+    return productList.filter(product =>
+      product.nombre
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase())
+    );
+  }, [searchTerm, productList]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -54,14 +67,19 @@ const Purchases = () => {
     if (cart.length === 0) return alert('La orden está vacía');
 
     try {
-      await purchases.createPurchase({
-        proveedor_id: parseInt(selectedProviderId),
-        detalles: cart.map(item => ({
-          producto_id: item.producto_id,
-          cantidad: item.cantidad,
-          precio_costo: item.precio_costo
-        }))
-      });
+      const payload = {
+          proveedor_id: parseInt(selectedProviderId),
+          detalles: cart.map(item => ({
+            producto_id: item.producto_id,
+            cantidad: item.cantidad,
+            precio_unitario: item.precio_unitario
+          }))
+      };
+
+      // console.log("PAYLOAD TO BACKEND:");
+      // console.log(payload);
+
+      await purchases.createPurchase(payload);
       setIsModalOpen(false);
       setCart([]);
       setSelectedProviderId('');
@@ -111,22 +129,35 @@ const Purchases = () => {
             <tbody className="divide-y divide-gray-100">
               {loading ? (
                 <tr><td colSpan="6" className="px-6 py-20 text-center text-gray-400 font-medium">Cargando historial de compras...</td></tr>
-              ) : purchaseList.map((ord) => (
+              ) : purchaseList.map((ord) => {  
+                // console.log("ORDER OBJECT:");
+                // console.log(ord);
+
+                // console.log("ORDER KEYS:");
+                // console.log(Object.keys(ord));
+               
+                return(
                 <tr key={ord.id} className="hover:bg-gray-50 transition-colors">
                   <td className="px-6 py-4 font-bold text-[#1a1c23]">#OC-{ord.id}</td>
-                  <td className="px-6 py-4 text-gray-600">{ord.proveedor}</td>
+                  <td className="px-6 py-4 text-gray-600">
+                    {
+                      providerList.find(
+                        provider => provider.id === ord.proveedor_id
+                      )?.nombre || "Proveedor no encontrado"
+                    }
+                  </td>
                   <td className="px-6 py-4 text-gray-500 text-sm">{new Date(ord.fecha_orden).toLocaleDateString()}</td>
                   <td className="px-6 py-4 font-black text-[#1a1c23]">${ord.total_orden.toLocaleString()}</td>
                   <td className="px-6 py-4">
                     <span className={`px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider ${
-                      ord.estado === 'pendiente' ? 'bg-yellow-50 text-yellow-600' :
-                      ord.estado === 'recibida' ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'
+                      ord.estado_orden === 'pendiente' ? 'bg-yellow-50 text-yellow-600' :
+                      ord.estado_orden === 'Completada' ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'
                     }`}>
-                      {ord.estado}
+                      {ord.estado_orden}
                     </span>
                   </td>
                   <td className="px-6 py-4">
-                    {ord.estado === 'pendiente' && (
+                    {ord.estado_orden === 'Pendiente' && (
                       <button 
                         onClick={() => handleReceive(ord.id)}
                         className="bg-green-600 text-white px-4 py-2 rounded-lg font-black text-xs uppercase tracking-wider hover:bg-green-700 transition-all shadow-sm"
@@ -136,7 +167,7 @@ const Purchases = () => {
                     )}
                   </td>
                 </tr>
-              ))}
+              )})}
             </tbody>
           </table>
         </div>
@@ -158,7 +189,7 @@ const Purchases = () => {
                 ))}
               </select>
             </div>
-            <div className="space-y-2">
+            {/* <div className="space-y-2">
               <label className="text-[13px] font-black text-gray-400 uppercase tracking-widest">Buscar Producto</label>
               <div className="flex gap-4">
                 <input 
@@ -171,6 +202,61 @@ const Purchases = () => {
                   +
                 </button>
               </div>
+            </div> */}
+            <div className="space-y-2 relative">
+              <label className="text-[13px] font-black text-gray-400 uppercase tracking-widest">
+                Buscar Producto
+              </label>
+
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Buscar producto..."
+                className="w-full px-6 py-4 rounded-xl border border-gray-100 bg-[#f8f9fa] outline-none focus:ring-2 focus:ring-[#4263eb]"
+              />
+
+              {/* Dropdown */}
+              {searchTerm.trim() && filteredProducts.length > 0 && (
+                <div className="absolute z-50 w-full mt-2 bg-white border border-gray-100 rounded-2xl shadow-2xl overflow-hidden max-h-80 overflow-y-auto">
+                  {filteredProducts.map(product => (
+                    <button
+                      key={product.id}
+                      type="button"
+                      onClick={() => {
+                        addToCart(product);
+                        setSearchTerm('');
+                      }}
+                      className="w-full px-6 py-4 text-left hover:bg-gray-50 transition-all border-b border-gray-50 last:border-b-0"
+                    >
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <p className="font-bold text-[#1a1c23]">
+                            {product.nombre}
+                          </p>
+
+                          <p className="text-sm text-gray-400">
+                            Stock: {product.stock_actual}
+                          </p>
+                        </div>
+
+                        <div>
+                          <p className="font-black text-[#4263eb]">
+                            ${product.precio_compra.toLocaleString()}
+                          </p>
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* Sin resultados */}
+              {searchTerm.trim() && filteredProducts.length === 0 && (
+                <div className="absolute z-50 w-full mt-2 bg-white border border-gray-100 rounded-xl shadow-lg p-4 text-sm text-gray-400">
+                  No se encontraron productos
+                </div>
+              )}
             </div>
           </div>
 

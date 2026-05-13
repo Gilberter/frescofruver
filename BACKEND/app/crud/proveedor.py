@@ -1,8 +1,11 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import func
+from fastapi import HTTPException, status
 
-from app.models.proveedor import Proveedor, OrdenCompra, DetalleCompra, EstadoOrden
+from app.models import *
+from app.schemas.compras import EstadoOrden
 from app.schemas.proveedor import ProveedorCreate, ProveedorUpdate
+from sqlalchemy.orm import joinedload
 
 
 def get_by_id(db: Session, proveedor_id: int) -> Proveedor | None:
@@ -53,10 +56,16 @@ def get_perfil_stats(db: Session, proveedor_id: int) -> dict:
     )
     return {"total_ordenes": total_ordenes, "monto_total_invertido": float(monto_total)}
 
-
-def get_orden_by_id(db: Session, orden_id: int) -> OrdenCompra | None:
-    return db.get(OrdenCompra, orden_id)
-
+def get_orden_by_id(db: Session, orden_id: int):
+    return (
+        db.query(OrdenCompra)
+        .options(
+            joinedload(OrdenCompra.detalles)
+            .joinedload(DetalleOrdenCompra.producto)
+        )
+        .filter(OrdenCompra.id == orden_id)
+        .first()
+    )
 
 def list_ordenes(
     db: Session,
@@ -74,7 +83,7 @@ def list_ordenes(
 def create_orden_with_detalles(
     db: Session,
     orden: OrdenCompra,
-    detalles: list[DetalleCompra],
+    detalles: list[DetalleOrdenCompra],
 ) -> OrdenCompra:
     db.add(orden)
     db.flush()
@@ -82,8 +91,20 @@ def create_orden_with_detalles(
         d.orden_id = orden.id
         db.add(d)
     db.commit()
-    db.refresh(orden)
-    return orden
+    orden_completa = (
+        db.query(OrdenCompra)
+        .options(
+            joinedload(OrdenCompra.detalles)
+        )
+        .filter(OrdenCompra.id == orden.id)
+        .first()
+    )
+    if orden_completa is None:
+        raise HTTPException(
+            status_code=500, 
+            detail="Error internal: No se pudo guardar la orden de compra."
+        )
+    return orden_completa
 
 
 def update_estado_orden(db: Session, orden: OrdenCompra, estado: EstadoOrden) -> OrdenCompra:

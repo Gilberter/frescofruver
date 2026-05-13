@@ -20,12 +20,18 @@ const Inventory = () => {
     precio_compra: '',
     precio_venta: '',
     stock_actual: '',
-    stock_minimo: ''
   });
 
-  const [adjustData, setAdjustData] = useState({
-    cantidad_ajuste: '',
-    motivo: ''
+  // const [adjustData, setAdjustData] = useState({
+  //   cantidad_ajuste: '',
+  //   motivo: ''
+  // });
+
+  const [movementData, setMovementData] = useState({
+    tipo_movimiento: 'Entrada',
+    cantidad: '',
+    motivo: 'No Motivo',
+    observacion: 'No Observacion'
   });
 
   useEffect(() => {
@@ -59,14 +65,13 @@ const Inventory = () => {
         precio_compra: parseFloat(formData.precio_compra),
         precio_venta: parseFloat(formData.precio_venta),
         stock_actual: parseInt(formData.stock_actual) || 0,
-        stock_minimo: parseInt(formData.stock_minimo) || 0,
       };
 
       await products.createProduct(payload);
       setIsCreateModalOpen(false);
       setFormData({
         nombre: '', categoria: 'fruta', unidad_medida: 'kg',
-        precio_compra: '', precio_venta: '', stock_actual: '', stock_minimo: ''
+        precio_compra: '', precio_venta: '', stock_actual: '',
       });
       loadProducts();
     } catch (err) {
@@ -74,19 +79,64 @@ const Inventory = () => {
     }
   };
 
+  // const handleAdjust = async (e) => {
+  //   e.preventDefault();
+  //   try {
+  //     // Correct field name for openapi.json: 'cantidad' instead of 'cantidad_ajuste'
+  //     await products.dataMovement(selectedProduct.id, {
+  //       tipo: movementData.tipo_movimiento,
+  //       cantidad: parseInt(movementData.cantidad),
+  //       motivo: movementData.motivo,
+  //       observacion: movementData.observacion
+  //     });
+  //     setIsAdjustModalOpen(false);
+  //     setMovementData({ cantidad: '', motivo: '' });
+  //     loadProducts();
+  //   } catch (err) {
+  //     alert('Error al ajustar inventario: ' + (err.response?.data?.detail?.[0]?.msg || err.response?.data?.detail || err.message));
+  //   }
+  // };
+
   const handleAdjust = async (e) => {
     e.preventDefault();
+
     try {
-      // Correct field name for openapi.json: 'cantidad' instead of 'cantidad_ajuste'
-      await products.adjustInventory(selectedProduct.id, {
-        cantidad: parseInt(adjustData.cantidad_ajuste),
-        motivo: adjustData.motivo
-      });
+
+      const payload = {
+        tipo: movementData.tipo,
+        cantidad: parseInt(movementData.cantidad),
+        motivo: movementData.motivo,
+        observacion: movementData.observacion
+      };
+
+      console.log("MOVEMENT PAYLOAD:");
+      console.log(payload);
+
+      await products.dataMovement(selectedProduct.id, payload);
+
       setIsAdjustModalOpen(false);
-      setAdjustData({ cantidad_ajuste: '', motivo: '' });
+
+      setMovementData({
+        tipo: 'Entrada',
+        cantidad: '',
+        motivo: 'No Motivo',
+        observacion: 'No Observacion'
+      });
+
       loadProducts();
+
     } catch (err) {
-      alert('Error al ajustar inventario: ' + (err.response?.data?.detail?.[0]?.msg || err.response?.data?.detail || err.message));
+
+      console.error(err.response?.data);
+
+      alert(
+        'Error al ajustar inventario: ' +
+        (
+          err.response?.data?.detail?.[0]?.msg ||
+          err.response?.data?.detail ||
+          err.message
+        )
+      );
     }
   };
 
@@ -143,7 +193,7 @@ const Inventory = () => {
                   <td className="px-6 py-4 font-bold text-[#1a1c23]">{product.nombre}</td>
                   <td className="px-6 py-4"><span className="bg-blue-50 text-blue-600 px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-wider">{product.categoria}</span></td>
                   <td className="px-6 py-4">
-                    <span className={`font-black text-lg ${product.stock_actual <= product.stock_minimo ? 'text-red-500' : 'text-green-600'}`}>
+                    <span className={`font-black text-lg ${product.bajo_stock ? 'text-red-500' : 'text-green-600'}`}>
                       {product.stock_actual} <span className="text-xs uppercase opacity-60">{product.unidad_medida}</span>
                     </span>
                     {product.stock_actual <= product.stock_minimo && (
@@ -153,7 +203,7 @@ const Inventory = () => {
                   <td className="px-6 py-4 font-black text-[#1a1c23]">${product.precio_venta.toLocaleString()}</td>
                   <td className="px-6 py-4">
                     <div className="flex items-center">
-                      <div className={`w-2 h-2 rounded-full mr-2 ${product.estado === 'activo' ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                      <div className={`w-2 h-2 rounded-full mr-2 ${product.estado === 'Activo' ? 'bg-green-500' : 'bg-red-500'}`}></div>
                       <span className="text-sm font-bold capitalize text-gray-600">{product.estado}</span>
                     </div>
                   </td>
@@ -238,51 +288,182 @@ const Inventory = () => {
                 className="w-full px-6 py-4 rounded-xl border border-gray-100 bg-[#f8f9fa] outline-none focus:ring-2 focus:ring-[#4263eb]"
               />
             </div>
-            <div className="space-y-2">
-              <label className="text-[13px] font-black text-gray-400 uppercase tracking-widest">Stock Mínimo (Alerta)</label>
-              <input 
-                type="number" required
-                value={formData.stock_minimo}
-                onChange={(e) => setFormData({...formData, stock_minimo: e.target.value})}
-                className="w-full px-6 py-4 rounded-xl border border-gray-100 bg-[#f8f9fa] outline-none focus:ring-2 focus:ring-[#4263eb]"
-              />
-            </div>
+   
           </div>
           <button type="submit" className="w-full bg-[#4263eb] text-white py-5 rounded-2xl font-black text-lg shadow-xl hover:bg-[#364fc7] transition-all">
             Registrar Producto
           </button>
         </form>
       </Modal>
-
-      {/* Adjust Inventory Modal */}
-      <Modal isOpen={isAdjustModalOpen} onClose={() => setIsAdjustModalOpen(false)} title={`Ajustar Stock: ${selectedProduct?.nombre}`}>
+      {/* Inventory Movement Modal */}
+      <Modal
+        isOpen={isAdjustModalOpen}
+        onClose={() => setIsAdjustModalOpen(false)}
+        title={`Movimiento Inventario: ${selectedProduct?.nombre}`}
+      >
         <form onSubmit={handleAdjust} className="space-y-8">
+
+          {/* Current Stock Card */}
           <div className="bg-blue-50 p-6 rounded-2xl border border-blue-100">
-            <p className="text-blue-800 font-medium">Stock actual: <span className="font-black">{selectedProduct?.stock_actual} {selectedProduct?.unidad_medida}</span></p>
+            <div className="flex justify-between items-center">
+              <div>
+                <p className="text-sm font-black uppercase tracking-widest text-blue-500">
+                  Stock Actual
+                </p>
+
+                <h3 className="text-3xl font-black text-blue-900 mt-1">
+                  {selectedProduct?.stock_actual}
+
+                  <span className="text-sm ml-2 uppercase opacity-60">
+                    {selectedProduct?.unidad_medida}
+                  </span>
+                </h3>
+              </div>
+
+              {selectedProduct?.bajo_stock && (
+                <div className="bg-red-100 text-red-600 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider">
+                  Bajo Stock
+                </div>
+              )}
+            </div>
           </div>
+
+          {/* Tipo Movimiento */}
           <div className="space-y-2">
-            <label className="text-[13px] font-black text-gray-400 uppercase tracking-widest">Cantidad a ajustar (+/-)</label>
-            <input 
-              type="number" required
-              value={adjustData.cantidad_ajuste}
-              onChange={(e) => setAdjustData({...adjustData, cantidad_ajuste: e.target.value})}
-              className="w-full px-6 py-5 rounded-xl border border-gray-100 bg-[#f8f9fa] outline-none focus:ring-2 focus:ring-[#4263eb] text-xl font-bold"
-              placeholder="Ej. -5 para restar, 10 para sumar"
+            <label className="text-[13px] font-black text-gray-400 uppercase tracking-widest">
+              Tipo Movimiento
+            </label>
+              <select
+                value={movementData.tipo}
+                onChange={(e) => {
+                  console.log("SELECT VALUE:", e.target.value);
+
+                  setMovementData({
+                    ...movementData,
+                    tipo: e.target.value
+                  });
+                }}
+                className="w-full px-6 py-4 rounded-xl border border-gray-100 bg-[#f8f9fa] outline-none focus:ring-2 focus:ring-[#4263eb] font-bold"
+              >
+                <option value="Entrada">Entrada</option>
+                <option value="Salida">Salida</option>
+                <option value="Ajuste">Ajuste</option>
+              </select>
+          </div>
+
+          {/* Cantidad */}
+          <div className="space-y-2">
+            <label className="text-[13px] font-black text-gray-400 uppercase tracking-widest">
+              Cantidad
+            </label>
+
+            <input
+              type="number"
+              required
+              min="1"
+              value={movementData.cantidad}
+              onChange={(e) =>
+                setMovementData({
+                  ...movementData,
+                  cantidad: e.target.value
+                })
+              }
+              className="w-full px-6 py-5 rounded-xl border border-gray-100 bg-[#f8f9fa] outline-none focus:ring-2 focus:ring-[#4263eb] text-2xl font-black"
+              placeholder="Ej. 10"
+            />
+
+            <p className="text-xs text-gray-400 font-medium">
+              La cantidad siempre debe ser positiva.
+            </p>
+          </div>
+
+          {/* Motivo */}
+          <div className="space-y-2">
+            <label className="text-[13px] font-black text-gray-400 uppercase tracking-widest">
+              Motivo
+            </label>
+
+            <input
+              type="text"
+              value={movementData.motivo}
+              onChange={(e) =>
+                setMovementData({
+                  ...movementData,
+                  motivo: e.target.value
+                })
+              }
+              className="w-full px-6 py-4 rounded-xl border border-gray-100 bg-[#f8f9fa] outline-none focus:ring-2 focus:ring-[#4263eb]"
+              placeholder="No motivo"
+            />
+
+            <p className="text-xs text-gray-400">
+              Si se deja vacío, se registrará como:
+              <span className="font-bold"> "No motivo"</span>
+            </p>
+          </div>
+
+          {/* Observacion */}
+          <div className="space-y-2">
+            <label className="text-[13px] font-black text-gray-400 uppercase tracking-widest">
+              Observación (Opcional)
+            </label>
+
+            <textarea
+              value={movementData.observacion || ''}
+              onChange={(e) =>
+                setMovementData({
+                  ...movementData,
+                  observacion: e.target.value
+                })
+              }
+              className="w-full px-6 py-4 rounded-xl border border-gray-100 bg-[#f8f9fa] outline-none focus:ring-2 focus:ring-[#4263eb] min-h-[120px]"
+              placeholder="Información adicional..."
             />
           </div>
-          <div className="space-y-2">
-            <label className="text-[13px] font-black text-gray-400 uppercase tracking-widest">Motivo del Ajuste (Obligatorio)</label>
-            <textarea 
-              required
-              value={adjustData.motivo}
-              onChange={(e) => setAdjustData({...adjustData, motivo: e.target.value})}
-              className="w-full px-6 py-4 rounded-xl border border-gray-100 bg-[#f8f9fa] outline-none focus:ring-2 focus:ring-[#4263eb] min-h-[120px]"
-              placeholder="Ej. Producto dañado en transporte, error de conteo inicial..."
-            ></textarea>
+
+          {/* Action Preview */}
+          <div className="bg-[#f8f9fa] border border-gray-100 rounded-2xl p-5">
+            <p className="text-xs font-black uppercase tracking-widest text-gray-400 mb-2">
+              Resumen Movimiento
+            </p>
+
+            <div className="flex justify-between items-center">
+              <div>
+                <p className="font-black text-[#1a1c23]">
+                  {movementData.tipo}
+                </p>
+
+                <p className="text-sm text-gray-500">
+                  {movementData.cantidad || 0} {selectedProduct?.unidad_medida}
+                </p>
+              </div>
+
+              <div
+                className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider
+                  ${
+                    movementData.tipo === 'Entrada'
+                      ? 'bg-green-100 text-green-600'
+                      : movementData.tipo === 'Salida'
+                      ? 'bg-red-100 text-red-600'
+                      : movementData.tipo === 'Merma'
+                      ? 'bg-orange-100 text-orange-600'
+                      : 'bg-blue-100 text-blue-600'
+                  }
+                `}
+              >
+                {movementData.tipo}
+              </div>
+            </div>
           </div>
-          <button type="submit" className="w-full bg-[#1a1c23] text-white py-5 rounded-2xl font-black text-lg shadow-xl hover:bg-black transition-all">
-            Confirmar Ajuste
+
+          {/* Submit */}
+          <button
+            type="submit"
+            className="w-full bg-[#1a1c23] text-white py-5 rounded-2xl font-black text-lg shadow-xl hover:bg-black transition-all active:scale-95"
+          >
+            Registrar Movimiento
           </button>
+
         </form>
       </Modal>
     </div>

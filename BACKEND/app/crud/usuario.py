@@ -2,7 +2,7 @@ from sqlalchemy.orm import Session
 
 from app.models.usuario import Usuario
 from app.schemas.usuario import UsuarioCreate, UsuarioUpdate
-from app.core.security import hash_password
+from app.core.security import Hasher
 
 
 def get_by_id(db: Session, user_id: int) -> Usuario | None:
@@ -26,7 +26,7 @@ def create(db: Session, data: UsuarioCreate) -> Usuario:
         nombre_completo=data.nombre_completo,
         no_documento=data.no_documento,
         username=data.username,
-        password=hash_password(data.password),
+        password=Hasher.get_password_hash(data.password),
         telefono=data.telefono,
         correo=data.correo,
         rol=data.rol,

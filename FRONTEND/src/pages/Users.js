@@ -11,8 +11,10 @@ const Users = () => {
     no_documento: '',
     username: '',
     password: '',
+    correo: '',
+    telefono: '',
     rol: 'Vendedor',
-    estado: 'activo'
+    estado: 'Activo'
   });
 
   useEffect(() => {
@@ -33,6 +35,11 @@ const Users = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+
+      if (formData.password.length < 6) {
+        alert("La contraseña debe tener mínimo 6 caracteres");
+        return;
+      }
       await users.createUser(formData);
       setIsModalOpen(false);
       setFormData({
@@ -40,10 +47,14 @@ const Users = () => {
         no_documento: '',
         username: '',
         password: '',
+        correo: '',
+        telefono: '',
         rol: 'Vendedor',
-        estado: 'activo'
+        estado: 'Activo'
       });
+
       loadUsers();
+
     } catch (err) {
       alert('Error al crear usuario: ' + (err.response?.data?.detail || err.message));
     }
@@ -51,12 +62,12 @@ const Users = () => {
 
   const toggleStatus = async (user) => {
     try {
-      if (user.estado === 'activo') {
+      if (user.estado === 'Activo') {
         // Use the specific DELETE endpoint for deactivation (RF-01.4)
         await users.deactivateUser(user.id);
       } else {
         // Use PATCH for re-activation
-        await users.updateUser(user.id, { estado: 'activo' });
+        await users.updateUser(user.id, { estado: 'Activo' });
       }
       loadUsers();
     } catch (err) {
@@ -103,8 +114,8 @@ const Users = () => {
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center">
-                      <div className={`w-2.5 h-2.5 rounded-full mr-2 ${u.estado === 'activo' ? 'bg-green-500' : 'bg-red-500'}`}></div>
-                      <span className={`font-bold capitalize ${u.estado === 'activo' ? 'text-green-600' : 'text-red-500'}`}>
+                      <div className={`w-2.5 h-2.5 rounded-full mr-2 ${u.estado === 'Activo' ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                      <span className={`font-bold capitalize ${u.estado === 'Activo' ? 'text-green-600' : 'text-red-500'}`}>
                         {u.estado}
                       </span>
                     </div>
@@ -112,9 +123,9 @@ const Users = () => {
                   <td className="px-6 py-4">
                     <button 
                       onClick={() => toggleStatus(u)}
-                      className={`font-black text-sm uppercase tracking-tighter hover:underline ${u.estado === 'activo' ? 'text-red-500' : 'text-green-600'}`}
+                      className={`font-black text-sm uppercase tracking-tighter hover:underline ${u.estado === 'Activo' ? 'text-red-500' : 'text-green-600'}`}
                     >
-                      {u.estado === 'activo' ? 'Desactivar' : 'Activar'}
+                      {u.estado === 'Activo' ? 'Desactivar' : 'Activar'}
                     </button>
                   </td>
                 </tr>
@@ -161,12 +172,54 @@ const Users = () => {
               <label className="text-[14px] font-black text-[#343a40] uppercase tracking-wider">Contraseña</label>
               <input 
                 type="password" required
+                minLength={6}
                 value={formData.password}
                 onChange={(e) => setFormData({...formData, password: e.target.value})}
                 className="w-full px-6 py-4 rounded-xl border border-gray-100 bg-[#f8f9fa] outline-none focus:ring-2 focus:ring-[#4263eb] transition-all"
                 placeholder="••••••••"
               />
             </div>
+            <div className="space-y-2">
+              <label className="text-[14px] font-black text-[#343a40] uppercase tracking-wider">
+                Correo Electrónico
+              </label>
+
+              <input
+                type="email"
+                required
+                value={formData.correo || ''}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    correo: e.target.value
+                  })
+                }
+                className="w-full px-6 py-4 rounded-xl border border-gray-100 bg-[#f8f9fa] outline-none focus:ring-2 focus:ring-[#4263eb] transition-all"
+                placeholder="usuario@email.com"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-[14px] font-black text-[#343a40] uppercase tracking-wider">
+                Teléfono
+              </label>
+
+              <input
+                type="tel"
+                required
+                value={formData.telefono || ''}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    telefono: e.target.value
+                  })
+                }
+                className="w-full px-6 py-4 rounded-xl border border-gray-100 bg-[#f8f9fa] outline-none focus:ring-2 focus:ring-[#4263eb] transition-all"
+                placeholder="Ej. 3001234567"
+              />
+            </div>
+
+
             <div className="space-y-2">
               <label className="text-[14px] font-black text-[#343a40] uppercase tracking-wider">Rol de Usuario</label>
               <select 

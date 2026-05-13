@@ -5,8 +5,9 @@ from app.crud import producto as crud_producto
 from app.crud import inventario as crud_inventario
 from app.crud import auditoria as crud_auditoria
 from app.models.producto import Producto
-from app.models.inventario import TipoMovimiento
-from app.schemas.producto import ProductoCreate, ProductoUpdate, AjusteInventarioIn
+from app.models.inventario import TipoMovimiento, MovimientoIn, MovimientoOut
+from app.schemas.producto import ProductoCreate, ProductoUpdate
+
 
 
 def crear_producto(db: Session, data: ProductoCreate, actor_id: int) -> Producto:
@@ -40,32 +41,93 @@ def actualizar_producto(db: Session, producto_id: int, data: ProductoUpdate, act
     return crud_producto.update(db, producto, data)
 
 
-def ajuste_manual(db: Session, producto_id: int, data: AjusteInventarioIn, actor_id: int) -> Producto:
-    producto = crud_producto.get_by_id(db, producto_id)
-    if not producto:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Producto no encontrado")
+def ajuste_inventario(
+    db: Session,
+    producto_id: int,
+    data: MovimientoIn,
+    actor_id: int,
+) -> Producto:
 
-    nuevo_stock = producto.stock_actual + data.cantidad
-    if nuevo_stock < 0:
+    producto = crud_producto.get_by_id(
+        db,
+        producto_id
+    )
+
+    if not producto:
+
         raise HTTPException(
-            status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=f"Stock insuficiente. Stock actual: {producto.stock_actual}",
+            status.HTTP_404_NOT_FOUND,
+            detail="Producto no encontrado",
         )
 
-    crud_producto.adjust_stock(db, producto, data.cantidad)
+    stock_actual = producto.stock_actual or 0
+
+
+    print(f"Producto data.tipo {data.tipo}")
+    if data.tipo == TipoMovimiento.entrada:
+        
+        nuevo_stock = stock_actual + data.cantidad
+        print(f"Producto nuevo_stock {nuevo_stock}")
+
+    elif data.tipo == TipoMovimiento.salida:
+
+        if data.cantidad > stock_actual:
+
+            raise HTTPException(
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=(
+                    f"Stock insuficiente. "
+                    f"Stock actual: {stock_actual}"
+                ),
+            )
+
+        nuevo_stock = stock_actual - data.cantidad
+
+    elif data.tipo == TipoMovimiento.ajuste:
+
+        nuevo_stock = data.cantidad
+
+    else:
+
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            detail="Tipo de movimiento inválido",
+        )
+
+
+    producto.stock_actual = nuevo_stock
+
+    db.commit()
+
+    db.refresh(producto)
+
+    print(f"Producto actualizado {producto.stock_actual}")
+
     crud_inventario.registrar_movimiento(
         db,
         producto_id=producto_id,
         usuario_id=actor_id,
-        tipo=TipoMovimiento.ajuste,
+        tipo=data.tipo,
         cantidad=data.cantidad,
         stock_resultante=nuevo_stock,
         motivo=data.motivo,
     )
+
+    # =========================
+    # AUDITORÍA
+    # =========================
+
     crud_auditoria.registrar(
         db,
-        accion="ajuste_inventario",
-        descripcion=f"Producto id={producto_id}: ajuste {data.cantidad} | motivo: {data.motivo}",
+        accion="movimiento_inventario",
+        descripcion=(
+            f"Producto id={producto_id} | "
+            f"tipo={data.tipo.value} | "
+            f"cantidad={data.cantidad} | "
+            f"stock_final={nuevo_stock} | "
+            f"motivo={data.motivo}"
+        ),
         usuario_id=actor_id,
     )
+
     return producto

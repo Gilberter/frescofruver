@@ -2,8 +2,8 @@ from fastapi import APIRouter, Query, status
 
 from app.core.deps import DBSession, CurrentUser, AdminOrOwner
 from app.crud import proveedor as crud_proveedor
-from app.models.proveedor import EstadoOrden
-from app.schemas.proveedor import OrdenCompraCreate, OrdenCompraOut, OrdenCompraResumen
+from app.models import *
+from app.schemas import *
 from app.services import proveedor_service
 
 router = APIRouter(prefix="/ordenes-compra", tags=["Órdenes de Compra"])

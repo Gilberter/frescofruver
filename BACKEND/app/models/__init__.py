@@ -4,6 +4,8 @@ from app.models.usuario import Usuario, RolUsuario
 from app.models.cliente import Cliente                      
 from app.models.producto import Producto                  
 from app.models.venta import Venta, DetalleVenta           
-from app.models.proveedor import Proveedor, OrdenCompra, DetalleCompra  
 from app.models.inventario import MovimientoInventario   
 from app.models.auditoria import Auditoria                
+
+from app.models.proveedor import Proveedor
+from app.models.compras import OrdenCompra, DetalleOrdenCompra

@@ -15,16 +15,43 @@ const Dashboard = () => {
 
   const loadDashboardData = async () => {
     setLoading(true);
+
     try {
-      // Correct call to openapi.json: reports.getLastMonth() returns a InformeConsolidado object
       const [reportData, allProducts] = await Promise.all([
         reports.getLastMonth(),
         products.getProducts()
       ]);
+
+      console.log("REPORT DATA:");
+      console.log(reportData);
+
+      console.log("REPORT DATA KEYS:");
+      console.log(Object.keys(reportData));
+
+      console.log("ALL PRODUCTS:");
+      console.log(allProducts);
+
       setStats(reportData);
-      setLowStockCount(allProducts.filter(p => p.stock_actual <= p.stock_minimo).length);
+
+      setLowStockCount(
+        allProducts.filter(
+          p => p.stock_actual <= p.stock_minimo
+        ).length
+      );
+
     } catch (err) {
       console.error('Error loading dashboard stats:', err);
+
+      // IMPORTANT DEBUG
+      console.log("FULL ERROR:");
+      console.log(err);
+
+      console.log("ERROR RESPONSE:");
+      console.log(err.response);
+
+      console.log("ERROR DATA:");
+      console.log(err.response?.data);
+
     } finally {
       setLoading(false);
     }

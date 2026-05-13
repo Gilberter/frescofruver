@@ -36,16 +36,39 @@ export const login = async (username, password) => {
 /**
  * Log out the current user by clearing localStorage.
  */
-export const logout = () => {
-  localStorage.removeItem('token');
-  localStorage.removeItem('user');
+export const logout = async () => {
+  try {
+    await apiClient.post('/auth/logout');
+  } catch (error) {
+    console.error('Logout error:', error);
+  } finally {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+  }
 };
 
-/**
- * Get the currently logged in user from localStorage.
- * @returns {Object|null}
- */
+export const getMe = async () => {
+  try {
+    const response = await apiClient.get('/auth/me');
+
+    localStorage.setItem(
+      'user',
+      JSON.stringify(response.data)
+    );
+
+    return response.data;
+
+  } catch (error) {
+    throw error.response
+      ? error.response.data
+      : new Error('Network error');
+  }
+};
+
 export const getCurrentUser = () => {
   const user = localStorage.getItem('user');
-  return user ? JSON.parse(user) : null;
+
+  return user
+    ? JSON.parse(user)
+    : null;
 };

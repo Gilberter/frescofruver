@@ -1,9 +1,11 @@
 from datetime import datetime, timezone, date, time
 from sqlalchemy.orm import Session
 
+
+
 from app.models.venta import Venta, DetalleVenta, EstadoVenta
-from app.models.proveedor import OrdenCompra, DetalleCompra, EstadoOrden
-from app.models.producto import Producto
+from app.models import *
+from app.schemas import *
 from app.schemas.informe import (
     FilaVentaTabular,
     InformeVentasTabular,
@@ -12,6 +14,7 @@ from app.schemas.informe import (
     ResumenPeriodo,
     DetalleProductoConsolidado,
     InformeConsolidado,
+    DashboardTopProducto
 )
 
 
@@ -248,10 +251,10 @@ def _obtener_detalles_productos(
         ingresos_venta = sum(float(v.subtotal or 0) for v in ventas)
 
         compras = (
-            db.query(DetalleCompra)
+            db.query(DetalleOrdenCompra)
             .join(OrdenCompra)
             .filter(
-                DetalleCompra.producto_id == producto.id,
+                DetalleOrdenCompra.producto_id == producto.id,
                 OrdenCompra.fecha_orden.isnot(None),
                 OrdenCompra.fecha_orden >= d0,
                 OrdenCompra.fecha_orden <= d1,
@@ -279,3 +282,75 @@ def _obtener_detalles_productos(
             )
 
     return detalles
+
+
+
+
+# app/services/dashboard_service.py
+
+
+from sqlalchemy.orm import Session
+from sqlalchemy import func
+
+from app.models.venta import Venta, DetalleVenta
+
+
+def obtener_dashboard_ultimo_mes(db: Session):
+
+    total_ingresos = (
+        db.query(func.sum(Venta.total))
+        .scalar()
+    ) or 0
+
+    total_ventas = (
+        db.query(func.count(Venta.id))
+        .scalar()
+    ) or 0
+
+    top_productos_query = (
+        db.query(
+            Producto.nombre.label("nombre_producto"),
+            func.sum(DetalleVenta.cantidad).label("cantidad_vendida"),
+            func.sum(
+                (DetalleVenta.precio_unitario - Producto.precio_compra)
+                * DetalleVenta.cantidad
+            ).label("ganancia"),
+            Producto.stock_actual.label("stock_actual")
+        )
+        .join(DetalleVenta.producto)
+        .group_by(Producto.id)
+        .order_by(func.sum(DetalleVenta.cantidad).desc())
+        .limit(5)
+        .all()
+    )
+
+    top_productos = []
+
+    ganancia_bruta = 0
+
+    for p in top_productos_query:
+        ganancia = float(p.ganancia or 0)
+
+        ganancia_bruta += ganancia
+
+        top_productos.append({
+            "nombre_producto": p.nombre_producto,
+            "cantidad_vendida": int(p.cantidad_vendida or 0),
+            "ganancia": ganancia,
+            "stock_actual": int(p.stock_actual or 0)
+        })
+
+    margen = 0
+
+    if total_ingresos > 0:
+        margen = (ganancia_bruta / total_ingresos) * 100
+
+    return {
+        "resumen": {
+            "total_ingresos": float(total_ingresos),
+            "total_ventas": int(total_ventas),
+            "ganancia_bruta": float(ganancia_bruta),
+            "margen_porcentaje": float(margen)
+        },
+        "detalles_productos_top_5": top_productos
+    }

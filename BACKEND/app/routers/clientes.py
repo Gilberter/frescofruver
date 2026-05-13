@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, status
 
-from app.core.deps import DBSession, CurrentUser, AnyRole
+from app.core.deps import DBSession, CurrentUser, AnyRole, AdminOrOwner
 from app.crud import cliente as crud_cliente
 from app.crud import venta as crud_venta
 from app.schemas.cliente import ClienteCreate, ClienteUpdate, ClienteOut
@@ -52,3 +52,9 @@ def historial_pedidos(cliente_id: int, db: DBSession):
     """Historial de pedidos del cliente (RF-02.4)."""
     return crud_venta.list_by_cliente(db, cliente_id)
 
+@router.delete("/retirar/{cliente_id}",dependencies=[AdminOrOwner] )
+def retirar_cliente(cliente_id:int, db: DBSession) -> str:
+    cliente = crud_cliente.delete(db, cliente_id)
+    if not cliente:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Cliente no encontrado")
+    return "Cliente Elimnado"

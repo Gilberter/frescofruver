@@ -1,7 +1,7 @@
 """Seed the database with initial data (roles, admin user, sample products)."""
 from sqlalchemy.orm import Session
 
-from app.core.security import hash_password
+from app.core.security import Hasher
 from app.models.usuario import Usuario, RolUsuario
 
 
@@ -15,7 +15,7 @@ def seed_usuarios(db: Session) -> None:
         nombre_completo="Administrador",
         no_documento="0000000000",
         username="admin",
-        password=hash_password("admin123"),
+        password=Hasher.get_password_hash("admin123"),
         rol=RolUsuario.administrador,
         estado="Activo",
     )

@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { products, clients, sales } from '../api';
+
 import Modal from '../components/Modal';
 
 const Sales = () => {
@@ -7,6 +8,7 @@ const Sales = () => {
   const [cart, setCart] = useState([]);
   const [productList, setProductList] = useState([]);
   const [clientList, setClientList] = useState([]);
+  const [clientSearch, setClientSearch] = useState('');
   const [selectedClientId, setSelectedClientId] = useState('');
   const [loading, setLoading] = useState(false);
   
@@ -36,22 +38,62 @@ const Sales = () => {
     }
   };
 
-  const addToCart = () => {
-    const product = productList.find(p => p.nombre.toLowerCase().includes(searchTerm.toLowerCase()));
-    if (product) {
-      if (product.stock_actual <= 0) {
-        alert('Producto sin stock');
+  const addToCart = (product) => {
+    if (!product) return;
+
+    if (product.stock_actual <= 0) {
+      return;
+    }
+
+    const existing = cart.find(item => item.id === product.id);
+
+    if (existing) {
+      if (existing.cantidad >= product.stock_actual) {
         return;
       }
-      const existing = cart.find(item => item.id === product.id);
-      if (existing) {
-        setCart(cart.map(item => item.id === product.id ? { ...item, cantidad: item.cantidad + 1 } : item));
-      } else {
-        setCart([...cart, { ...product, cantidad: 1 }]);
-      }
-      setSearchTerm('');
+
+      setCart(prev =>
+        prev.map(item =>
+          item.id === product.id
+            ? { ...item, cantidad: item.cantidad + 1 }
+            : item
+        )
+      );
+    } else {
+      setCart(prev => [
+        ...prev,
+        {
+          id: product.id,
+          nombre: product.nombre,
+          precio_venta: product.precio_venta,
+          unidad_medida: product.unidad_medida,
+          stock_actual: product.stock_actual,
+          cantidad: 1
+        }
+      ]);
     }
   };
+
+  const filteredProducts = useMemo(() => {
+    if (!searchTerm.trim()) return [];
+
+    return productList.filter(product =>
+      product.nombre
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase())
+    );
+  }, [searchTerm, productList]);
+
+
+  const filteredClients = useMemo(() => {
+    if (!clientSearch.trim()) return [];
+
+    return clientList.filter(client =>
+      client.no_documento
+        .toLowerCase()
+        .includes(clientSearch.toLowerCase())
+    );
+  }, [clientSearch, clientList]);
 
   const handleQuickClientRegister = async (e) => {
     e.preventDefault();
@@ -101,7 +143,7 @@ const Sales = () => {
         <h2 className="text-4xl font-black text-[#1a1c23] mb-10 tracking-tighter">Módulo de Ventas</h2>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-10">
-          <div className="space-y-3">
+          {/* <div className="space-y-3">
             <div className="flex justify-between items-center">
               <label className="text-[13px] font-black text-gray-400 uppercase tracking-widest">Cliente</label>
               <button 
@@ -121,25 +163,147 @@ const Sales = () => {
                 <option key={c.id} value={c.id}>{c.nombre_completo} (CC: {c.no_documento})</option>
               ))}
             </select>
+          </div> */}
+
+
+
+          <div className="space-y-3 relative">
+            <div className="flex justify-between items-center">
+              <label className="text-[13px] font-black text-gray-400 uppercase tracking-widest">
+                Cliente
+              </label>
+
+              <button
+                onClick={() => setIsClientModalOpen(true)}
+                className="text-[#4263eb] text-xs font-black uppercase tracking-tighter hover:underline"
+              >
+                + Registro Rápido
+              </button>
+            </div>
+
+            <input
+              type="text"
+              value={clientSearch}
+              onChange={(e) => setClientSearch(e.target.value)}
+              placeholder="Buscar por cédula..."
+              className="w-full px-6 py-4 rounded-2xl border border-gray-100 bg-[#f8f9fa] outline-none focus:ring-2 focus:ring-[#4263eb] font-bold text-[#1a1c23]"
+            />
+
+            {/* Dropdown Clientes */}
+            {clientSearch.trim() && filteredClients.length > 0 && (
+              <div className="absolute z-50 w-full mt-2 bg-white border border-gray-100 rounded-2xl shadow-2xl overflow-hidden max-h-80 overflow-y-auto">
+                {filteredClients.map((client) => (
+                  <button
+                    key={client.id}
+                    type="button"
+                    onClick={() => {
+                      setSelectedClientId(client.id.toString());
+                      setClientSearch(
+                        `${client.nombre_completo} - ${client.no_documento}`
+                      );
+                    }}
+                    className="w-full px-6 py-4 text-left hover:bg-gray-50 transition-all border-b border-gray-50 last:border-b-0"
+                  >
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <p className="font-bold text-[#1a1c23]">
+                          {client.nombre_completo}
+                        </p>
+
+                        <p className="text-sm text-gray-400">
+                          CC: {client.no_documento}
+                        </p>
+                      </div>
+
+                      <div className="text-right">
+                        <p className="text-sm font-medium text-gray-500">
+                          {client.telefono}
+                        </p>
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Sin resultados */}
+            {clientSearch.trim() && filteredClients.length === 0 && (
+              <div className="absolute z-50 w-full mt-2 bg-white border border-gray-100 rounded-2xl shadow-lg p-4 text-gray-400 text-sm">
+                No se encontraron clientes
+              </div>
+            )}
           </div>
-          <div className="space-y-3">
-            <label className="text-[13px] font-black text-gray-400 uppercase tracking-widest">Buscar Producto</label>
+          
+
+          <div className="space-y-3 relative">
+            <label className="text-[13px] font-black text-gray-400 uppercase tracking-widest">
+              Buscar Producto
+            </label>
+
             <div className="flex gap-4">
-              <input 
-                type="text" 
+              <input
+                type="text"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Nombre del producto..."
-                className="flex-1 px-6 py-4 rounded-2xl border border-gray-100 bg-[#f8f9fa] outline-none"
+                className="flex-1 px-6 py-4 rounded-2xl border border-gray-100 bg-[#f8f9fa] outline-none focus:ring-2 focus:ring-[#4263eb]"
               />
-              <button 
+
+              <button
                 onClick={addToCart}
                 className="bg-[#1a1c23] text-white px-8 py-4 rounded-2xl font-black shadow-lg hover:bg-black transition-all"
               >
                 +
               </button>
             </div>
+
+            {/* Dropdown Productos */}
+            {searchTerm.trim() && filteredProducts.length > 0 && (
+              <div className="absolute z-50 w-full mt-2 bg-white border border-gray-100 rounded-2xl shadow-2xl overflow-hidden max-h-80 overflow-y-auto">
+                {filteredProducts.map((product) => (
+                  <button
+                    key={product.id}
+                    type="button"
+                    onClick={() => {
+                      addToCart(product);
+                      setSearchTerm('');
+                    }}
+                    className="w-full px-6 py-4 text-left hover:bg-gray-50 transition-all border-b border-gray-50 last:border-b-0"
+                  >
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <p className="font-bold text-[#1a1c23]">
+                          {product.nombre}
+                        </p>
+
+                        <p className="text-sm text-gray-400">
+                          Stock: {product.stock_actual} {product.unidad_medida}
+                        </p>
+                      </div>
+
+                      <div className="text-right">
+                        <p className="font-black text-[#4263eb]">
+                          ${product.precio_venta.toLocaleString()}
+                        </p>
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Sin resultados */}
+            {searchTerm.trim() && filteredProducts.length === 0 && (
+              <div className="absolute z-50 w-full mt-2 bg-white border border-gray-100 rounded-2xl shadow-lg p-4 text-gray-400 text-sm">
+                No se encontraron productos
+              </div>
+            )}
           </div>
+
+
+
+
+          
         </div>
 
         <div>

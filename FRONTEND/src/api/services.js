@@ -32,6 +32,7 @@ export const reports = {
   getLastMonth: () => apiClient.get('/informes/ultimo-mes').then(res => res.data),
   getVentasReport: (start, end) => apiClient.get('/informes/ventas', { params: { fecha_inicio: start, fecha_fin: end } }).then(res => res.data),
   getComprasReport: (start, end) => apiClient.get('/informes/compras', { params: { fecha_inicio: start, fecha_fin: end } }).then(res => res.data),
+  getLastMonth: () => apiClient.get('/dashboard/ultimo-mes').then(res => res.data),
 };
 export const purchases = {
   getPurchases: () => apiClient.get('/ordenes-compra/').then(res => res.data),

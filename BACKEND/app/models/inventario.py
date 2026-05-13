@@ -5,14 +5,12 @@ from datetime import date
 
 from sqlalchemy import String, Integer, ForeignKey, Date, Enum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+from app.models import *
 
 from app.core.database import Base
+from app.schemas import *
 
 
-class TipoMovimiento(str, enum.Enum):
-    entrada = "Entrada"
-    salida = "Salida"
-    ajuste = "Ajuste"
 
 
 class MovimientoInventario(Base):
@@ -27,6 +25,13 @@ class MovimientoInventario(Base):
     )
     cantidad: Mapped[int | None] = mapped_column("Cantidad", Integer, nullable=True)
     motivo: Mapped[str | None] = mapped_column("Motivo", String(100), nullable=True)
+    
+    observacion: Mapped[str | None] = mapped_column(
+        "Observacion",
+        String(255),
+        nullable=True,
+    )   
+    
     stock_resultante: Mapped[int | None] = mapped_column("StockResultante", Integer, nullable=True)
     producto_id: Mapped[int | None] = mapped_column("IdProducto", ForeignKey("productos.IdProducto"), nullable=True)
     usuario_id: Mapped[int | None] = mapped_column("IdUsuario", ForeignKey("usuario.IdUsuario"), nullable=True)

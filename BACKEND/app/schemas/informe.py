@@ -4,6 +4,31 @@ from typing import Optional
 
 # ── Informe de Ventas ─────────────────────────────────────────────────────
 
+# app/schemas/dashboard.py
+
+from pydantic import BaseModel
+from typing import List
+
+
+class DashboardResumen(BaseModel):
+    total_ingresos: float
+    total_ventas: int
+    ganancia_bruta: float
+    margen_porcentaje: float
+
+
+class DashboardTopProducto(BaseModel):
+    nombre_producto: str
+    cantidad_vendida: int
+    ganancia: float
+    stock_actual: int
+
+
+class DashboardResponse(BaseModel):
+    resumen: DashboardResumen
+    detalles_productos_top_5: List[DashboardTopProducto]
+
+    
 class FilaVentaTabular(BaseModel):
     """Fila individual del informe tabular de ventas"""
     numero_factura: str
